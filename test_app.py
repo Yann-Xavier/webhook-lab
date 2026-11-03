@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 import sqlite3
 from contextlib import closing
 
@@ -21,3 +22,19 @@ def test_retry_after_lost_response(tmp_path, monkeypatch):
         assert connection.execute("SELECT * FROM events").fetchall() == [
             ("demo-1", "Pedido recebido")
         ]
+
+
+def test_concurrent_deliveries_accept_only_one(tmp_path, monkeypatch):
+    monkeypatch.setenv("WEBHOOK_DB", str(tmp_path / "events.sqlite3"))
+    event = {"id": "shared-id", "message": "Entrega simultânea"}
+
+    def deliver():
+        with TestClient(app) as sender:
+            response = sender.post("/events", json=event)
+            assert response.status_code == 200
+            return response.json()["accepted"]
+
+    with ThreadPoolExecutor(max_workers=4) as workers:
+        results = list(workers.map(lambda _: deliver(), range(4)))
+
+    assert results.count(True) == 1
