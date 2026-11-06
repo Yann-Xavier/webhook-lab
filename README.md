@@ -27,9 +27,12 @@ a variável de ambiente `WEBHOOK_DB`.
 python -m pytest -q
 ```
 
-O teste simula a perda da resposta descartando a primeira resposta HTTP
-e verifica o efeito diretamente no banco. O laboratório usa dados
-sintéticos e foi projetado para execução local.
+São dois testes:
+
+- **Resposta perdida.** O emissor descarta a primeira resposta HTTP e reenvia. O teste confere no banco que existe um único registro.
+- **Entregas simultâneas.** Quatro threads enviam o mesmo evento ao mesmo tempo. Só uma resposta volta com `accepted: true` e o banco termina com um único registro.
+
+As versões das dependências estão fixadas em `requirements.txt`, e o CI roda com Python 3.12. O laboratório usa dados sintéticos e foi projetado para execução local.
 
 ## Escopo e critérios de aceite
 

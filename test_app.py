@@ -25,7 +25,8 @@ def test_retry_after_lost_response(tmp_path, monkeypatch):
 
 
 def test_concurrent_deliveries_accept_only_one(tmp_path, monkeypatch):
-    monkeypatch.setenv("WEBHOOK_DB", str(tmp_path / "events.sqlite3"))
+    path = tmp_path / "events.sqlite3"
+    monkeypatch.setenv("WEBHOOK_DB", str(path))
     event = {"id": "shared-id", "message": "Entrega simultânea"}
 
     def deliver():
@@ -38,3 +39,5 @@ def test_concurrent_deliveries_accept_only_one(tmp_path, monkeypatch):
         results = list(workers.map(lambda _: deliver(), range(4)))
 
     assert results.count(True) == 1
+    with closing(sqlite3.connect(path)) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM events").fetchone() == (1,)
